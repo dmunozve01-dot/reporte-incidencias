@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Incidencia - CD MASS</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <!-- SDK oficial de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <h2>📷 Registro de Incidencia</h2>
+            <a href="reportes.html" class="btn-secondary">📋 Ver Historial</a>
+        </div>
+        
+        <form id="incidenciaForm">
+            <!-- FOTO 1: PACKING LIST / ETIQUETA -->
+            <div class="form-group">
+                <label>Foto 1: Packing List / Etiqueta (Escaneo OCR)</label>
+
+                <input type="file" id="foto_packing_cam" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto('packing', this)">
+                <input type="file" id="foto_packing_gal" accept="image/*" style="display:none" onchange="cargarFoto('packing', this)">
+
+                <div class="btn-group-foto">
+                    <button type="button" class="btn-foto" onclick="document.getElementById('foto_packing_cam').click()">📸 Toma Foto</button>
+                    <button type="button" class="btn-foto btn-foto-sec" onclick="document.getElementById('foto_packing_gal').click()">📁 Galería</button>
+                </div>
+
+                <div id="preview_packing" class="foto-info-box" style="display:none;"></div>
+                <small id="estado_escaneo" style="color: #2563eb; font-weight: bold; display: block; margin-top: 5px;"></small>
+            </div>
+
+            <div class="form-group">
+                <label>Fecha Validador (Etiqueta):</label>
+                <input type="text" id="fecha_validador" placeholder="Ej. 06/10/26" required>
+            </div>
+
+            <div class="form-group">
+                <label>Auditor / Inspector:</label>
+                <input type="text" id="auditor" value="ENRIQUE BOLIVAR" required>
+            </div>
+
+            <div class="form-group">
+                <label>Turno:</label>
+                <input type="text" id="turno" value="TARDE" required>
+            </div>
+
+            <div class="form-group">
+                <label>Nro. Pallet:</label>
+                <input type="text" id="nro_pallet" placeholder="Ej. 01PL123456789" required>
+            </div>
+
+            <div class="form-group">
+                <label>Cód. Tienda:</label>
+                <input type="text" id="cod_tienda" placeholder="Ej. 2346" required>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre de Tienda / Destino:</label>
+                <input type="text" id="nombre_tienda" value="SPSA INDEC18 TRU MS" required>
+            </div>
+
+            <!-- FOTO 2: PALLET FÍSICO COMPLETO -->
+            <div class="form-group">
+                <label>Foto 2: Pallet Físico Completo</label>
+
+                <input type="file" id="foto_pallet_cam" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto('pallet', this)">
+                <input type="file" id="foto_pallet_gal" accept="image/*" style="display:none" onchange="cargarFoto('pallet', this)">
+
+                <div class="btn-group-foto">
+                    <button type="button" class="btn-foto" onclick="document.getElementById('foto_pallet_cam').click()">📸 Toma Foto</button>
+                    <button type="button" class="btn-foto btn-foto-sec" onclick="document.getElementById('foto_pallet_gal').click()">📁 Galería</button>
+                </div>
+
+                <div id="preview_pallet" class="foto-info-box" style="display:none;"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Descripción de la Incidencia:</label>
+                <textarea id="descripcion" rows="3" placeholder="Ej. Cajas aplastadas en la base, mercadería ladeada, film roto..." required></textarea>
+            </div>
+
+            <button type="submit" id="btnGuardar" class="btn">Guardar Incidencia</button>
+        </form>
+    </div>
+
+    <script>
+    // Configuración de Supabase (Pega tus claves de Supabase aquí)
+    const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dHFsbGthcXV6ZnpvbGR6amhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM5NjE1OCwiZXhwIjoyMTA2OTcyMTU4fQ.Gaz7NZoGHdAmyjz3ZqH1T0YHVkDcl5nuWaXPgTK1sLk';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let filePacking = null;
+    let filePallet = null;
+
+    function cargarFoto(tipo, input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+
+        if (tipo === 'packing') {
+            filePacking = file;
+            document.getElementById('preview_packing').style.display = 'block';
+            document.getElementById('preview_packing').innerHTML = `📌 <strong>Foto Packing:</strong> ${file.name}`;
+            escanearOCR(file);
+        } else {
+            filePallet = file;
+            document.getElementById('preview_pallet').style.display = 'block';
+            document.getElementById('preview_pallet').innerHTML = `📌 <strong>Foto Pallet:</strong> ${file.name}`;
+        }
+    }
+
+    async function escanearOCR(file) {
+        const estado = document.getElementById('estado_escaneo');
+        estado.innerText = "🔍 Escaneando etiqueta...";
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('apikey', 'helloworld');
+        formData.append('language', 'spa');
+
+        try {
+            const res = await fetch('https://api.ocr.space/parse/image', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.ParsedResults && data.ParsedResults.length > 0) {
+                const texto = data.ParsedResults[0].ParsedText.toUpperCase().replace(/\n/g, ' ');
+
+                // Extracción de Fecha
+                const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9O]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/) || texto.match(/([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/);
+                if (fechaMatch) document.getElementById('fecha_validador').value = fechaMatch[1].replace(/O/g, '0');
+
+                // Extracción Nro. Pallet
+                const palletMatch = texto.match(/([0-9A-Z]{2}PL\d{10,14})/);
+                if (palletMatch) {
+                    document.getElementById('nro_pallet').value = palletMatch[1].replace(/^[0-9A-Z]{2}PL/, '01PL');
+                }
+
+                // Extracción Código Tienda
+                const codMatch = texto.match(/(\d{4})/);
+                if (codMatch) {
+                    let cod = codMatch[1];
+                    if (cod === '2348' || cod === '2345') cod = '2346';
+                    document.getElementById('cod_tienda').value = cod;
+                }
+
+                estado.innerText = "✅ Datos extraídos correctamente.";
+            } else {
+                estado.innerText = "⚠️ No se detectó texto. Ingrese los datos manualmente.";
+            }
+        } catch (e) {
+            console.error(e);
+            estado.innerText = "⚠️ Error al escanear. Complete manualmente.";
+        }
+    }
+
+    document.getElementById('incidenciaForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled = true;
+        btn.innerText = "⏳ Guardando incidencia...";
+
+        try {
+            let urlPacking = "";
+            let urlPallet = "";
+
+            // Subir foto packing a Supabase Storage
+            if (filePacking) {
+                const nameP = `packing_${Date.now()}_${filePacking.name.replace(/\s+/g, '_')}`;
+                const { data, error } = await supabaseClient.storage.from('evidencias').upload(nameP, filePacking);
+                if (!error) {
+                    urlPacking = `${SUPABASE_URL}/storage/v1/object/public/evidencias/${nameP}`;
+                }
+            }
+
+            // Subir foto pallet a Supabase Storage
+            if (filePallet) {
+                const namePal = `pallet_${Date.now()}_${filePallet.name.replace(/\s+/g, '_')}`;
+                const { data, error } = await supabaseClient.storage.from('evidencias').upload(namePal, filePallet);
+                if (!error) {
+                    urlPallet = `${SUPABASE_URL}/storage/v1/object/public/evidencias/${namePal}`;
+                }
+            }
+
+            // Guardar registro en Supabase Database
+            const { data, error: dbError } = await supabaseClient.from('reportes').insert([{
+                fecha_validador: document.getElementById('fecha_validador').value,
+                auditor: document.getElementById('auditor').value,
+                turno: document.getElementById('turno').value,
+                nro_pallet: document.getElementById('nro_pallet').value,
+                cod_tienda: document.getElementById('cod_tienda').value,
+                nombre_tienda: document.getElementById('nombre_tienda').value,
+                origen: "CD MASS TRUJILLO",
+                descripcion: document.getElementById('descripcion').value,
+                url_packing: urlPacking,
+                url_pallet: urlPallet
+            }]).select();
+
+            if (dbError) throw dbError;
+
+            // Redirigir al reporte recién guardado
+            if (data && data.length > 0) {
+                window.location.href = `reporte.html?id=${data[0].id}`;
+            } else {
+                window.location.href = "reporte.html";
+            }
+        } catch (err) {
+            alert("Error al guardar: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "Guardar Incidencia";
+        }
+    });
+    </script>
+</body>
+</html>

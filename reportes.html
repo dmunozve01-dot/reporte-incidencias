@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Incidencias - CD MASS</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container container-wide">
+        <div class="header-actions">
+            <h2>📋 Historial de Incidencias</h2>
+            <div>
+                <a href="index.html" class="btn-secondary">➕ Nuevo Reporte</a>
+                <button onclick="descargarExcel()" class="btn-success">📊 Descargar Excel</button>
+            </div>
+        </div>
+
+        <div id="loading" style="margin-top:20px; font-weight:bold;">⏳ Cargando historial...</div>
+        <div id="gridReportes" class="reportes-grid" style="display:none;"></div>
+    </div>
+
+    <div id="imageModal" class="modal">
+        <div class="modal-bar">
+            <span id="modalTitle" class="modal-filename">imagen.jpg</span>
+            <div class="modal-actions">
+                <a id="modalDownload" href="#" download target="_blank" class="btn-modal">⬇ Abrir Imagen</a>
+                <button class="close-modal" onclick="cerrarModal()">✕</button>
+            </div>
+        </div>
+        <div class="modal-body" onclick="cerrarModal()">
+            <img id="modalImage" class="modal-content" src="" alt="Evidencia" onclick="event.stopPropagation()">
+        </div>
+    </div>
+
+    <script>
+    const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dHFsbGthcXV6ZnpvbGR6amhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM5NjE1OCwiZXhwIjoyMTA2OTcyMTU4fQ.Gaz7NZoGHdAmyjz3ZqH1T0YHVkDcl5nuWaXPgTK1sLk';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let reportesData = [];
+
+    async function cargarReportes() {
+        const loading = document.getElementById('loading');
+        const grid = document.getElementById('gridReportes');
+
+        try {
+            const { data, error } = await _supabase.from('reportes').select('*').order('id', { ascending: false });
+            if (error) throw error;
+
+            reportesData = data;
+            loading.style.display = 'none';
+
+            if (data.length === 0) {
+                grid.innerHTML = '<p style="margin-top:20px;">No hay datos registrados.</p>';
+                grid.style.display = 'block';
+                return;
+            }
+
+            grid.innerHTML = data.map(r => `
+                <div class="card-reporte" id="card-${r.id}">
+                    <div class="card-header">
+                        <div>
+                            <strong>Pallet: ${r.nro_pallet || 'N/A'}</strong>
+                            <button onclick="eliminarReporte(${r.id})" class="btn-danger-sm">🗑️ Borrar</button>
+                        </div>
+                        <span class="fecha-badge">${new Date(r.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Fecha Validador:</strong> ${r.fecha_validador || ''}</p>
+                        <p><strong>Auditor:</strong> ${r.auditor || ''} | <strong>Turno:</strong> ${r.turno || ''}</p>
+                        <p><strong>Tienda:</strong> ${r.cod_tienda || ''} - ${r.nombre_tienda || ''}</p>
+                        <div class="desc-box"><strong>Incidencia:</strong> ${r.descripcion || ''}</div>
+                        <div class="fotos-comparativa">
+                            ${r.url_packing ? `<div><small>Packing</small><img src="${r.url_packing}" class="img-preview" onclick="abrirModal('${r.url_packing}', 'Packing_${r.nro_pallet}.jpg')"></div>` : ''}
+                            ${r.url_pallet ? `<div><small>Pallet</small><img src="${r.url_pallet}" class="img-preview" onclick="abrirModal('${r.url_pallet}', 'Pallet_${r.nro_pallet}.jpg')"></div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            grid.style.display = 'grid';
+        } catch (err) {
+            loading.innerText = "Error: " + err.message;
+        }
+    }
+
+    async function eliminarReporte(id) {
+        if (confirm("¿Deseas eliminar este registro?")) {
+            const { error } = await _supabase.from('reportes').delete().eq('id', id);
+            if (!error) {
+                document.getElementById(`card-${id}`).remove();
+            }
+        }
+    }
+
+    function abrirModal(src, titulo) {
+        document.getElementById('modalImage').src = src;
+        document.getElementById('modalDownload').href = src;
+        document.getElementById('modalTitle').innerText = titulo;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    function descargarExcel() {
+        if (reportesData.length === 0) return alert("Sin datos para exportar");
+        const worksheet = XLSX.utils.json_to_sheet(reportesData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Incidencias");
+        XLSX.writeFile(workbook, `Reporte_Incidencias_${Date.now()}.xlsx`);
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarReportes);
+    </script>
+</body>
+</html>
