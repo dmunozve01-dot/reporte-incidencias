@@ -87,18 +87,9 @@
     </div>
 
     <script>
-    // Configuración de Supabase
-    const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
+       const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dHFsbGthcXV6ZnpvbGR6amhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM5NjE1OCwiZXhwIjoyMTA2OTcyMTU4fQ.Gaz7NZoGHdAmyjz3ZqH1T0YHVkDcl5nuWaXPgTK1sLk';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // Mapeo de Códigos de Tienda a Nombres Comerciales
-    const MAPA_TIENDAS = {
-        '2346': 'SPSA INDEC18 TRU MS',
-        '2348': 'SPSA INDEC18 TRU MS',
-        '9620': 'MASS TRUJILLO - 9620',
-        '9621': 'MASS TRUJILLO - 9621'
-    };
 
     let filePacking = null;
     let filePallet = null;
@@ -125,27 +116,6 @@
         }
     }
 
-    function normalizarFecha(strFecha) {
-        if (!strFecha) return '';
-        const partes = strFecha.split(/[\/\-]/);
-        if (partes.length === 3) {
-            let [p1, p2, p3] = partes;
-            // Si viene en formato YY-MM-DD o YYYY-MM-DD (ej. 26-10-06)
-            if (p1.length === 4 || (parseInt(p1) > 20 && parseInt(p3) <= 31)) {
-                const anio = p1.slice(-2);
-                const mes = p2.padStart(2, '0');
-                const dia = p3.padStart(2, '0');
-                return `${dia}/${mes}/${anio}`;
-            }
-            // Si viene en formato DD-MM-YY
-            const dia = p1.padStart(2, '0');
-            const mes = p2.padStart(2, '0');
-            const anio = p3.slice(-2);
-            return `${dia}/${mes}/${anio}`;
-        }
-        return strFecha;
-    }
-
     async function escanearOCR(file) {
         const estado = document.getElementById('estado_escaneo');
         estado.innerText = "🔍 Escaneando etiqueta...";
@@ -154,6 +124,7 @@
         formData.append('file', file);
         formData.append('apikey', 'helloworld');
         formData.append('language', 'spa');
+        formData.append('OCREngine', '2');
 
         try {
             const res = await fetch('https://api.ocr.space/parse/image', {
@@ -165,40 +136,49 @@
             aplicarValoresPorDefecto();
 
             if (data.ParsedResults && data.ParsedResults.length > 0) {
-                const texto = data.ParsedResults[0].ParsedText.toUpperCase().replace(/\n/g, ' ');
+                const texto = data.ParsedResults[0].ParsedText.toUpperCase();
 
-                // 1. Extraer Nro. Pallet
+                // 1. Auditor (NOMBRE: ...)
+                const nombreMatch = texto.match(/NOMBRE[\s\:\-]+([A-Z\s]+?)(?=\s*FECHA|\s*TURNO|\n|$)/);
+                if (nombreMatch && nombreMatch[1].trim().length > 3) {
+                    document.getElementById('auditor').value = nombreMatch[1].trim();
+                }
+
+                // 2. Turno (TURNO: ...)
+                const turnoMatch = texto.match(/TURNO[\s\:\-]+([A-Z]+)/);
+                if (turnoMatch) {
+                    document.getElementById('turno').value = turnoMatch[1].trim();
+                }
+
+                // 3. Fecha (FECHA: DD / MM / YY)
+                const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9]{1,2})[\s\/\-]*([0-9]{1,2})[\s\/\-]*([0-9]{2,4})/);
+                if (fechaMatch) {
+                    const dia = fechaMatch[1].padStart(2, '0');
+                    const mes = fechaMatch[2].padStart(2, '0');
+                    let anio = fechaMatch[3];
+                    if (anio.length === 4) anio = anio.slice(-2);
+                    document.getElementById('fecha_validador').value = `${dia}/${mes}/${anio}`;
+                }
+
+                // 4. Nro. Pallet (01PL...)
                 const palletMatch = texto.match(/([0-9A-Z]{2}PL\d{10,14})/);
                 if (palletMatch) {
-                    const fullPallet = palletMatch[1].replace(/^[0-9A-Z]{2}PL/, '01PL');
-                    document.getElementById('nro_pallet').value = fullPallet;
-
-                    // Extraer Código de Tienda directamente desde los dígitos del Nro. Pallet (posiciones 4 a 8)
-                    if (fullPallet.length >= 8) {
-                        const codExtraido = fullPallet.substring(4, 8);
-                        document.getElementById('cod_tienda').value = codExtraido;
-                        
-                        // Asignar Nombre de Tienda desde el Mapa o fallback
-                        document.getElementById('nombre_tienda').value = MAPA_TIENDAS[codExtraido] || `MASS TIENDA ${codExtraido}`;
-                    }
-                } else {
-                    // Fallback para código de tienda si no se leyó el pallet completo
-                    const codMatch = texto.match(/(\d{4})/);
-                    if (codMatch) {
-                        const cod = codMatch[1];
-                        document.getElementById('cod_tienda').value = cod;
-                        document.getElementById('nombre_tienda').value = MAPA_TIENDAS[cod] || `MASS TIENDA ${cod}`;
-                    }
+                    document.getElementById('nro_pallet').value = palletMatch[1].replace(/^[0-9A-Z]{2}PL/, '01PL');
                 }
 
-                // 2. Extraer y Formatear Fecha
-                const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9O]{1,4}[\/\-][0-9]{1,2}[\/\-][0-9]{1,4})/) || texto.match(/([0-9]{1,4}[\/\-][0-9]{1,2}[\/\-][0-9]{1,4})/);
-                if (fechaMatch) {
-                    const rawFecha = fechaMatch[1].replace(/O/g, '0');
-                    document.getElementById('fecha_validador').value = normalizarFecha(rawFecha);
+                // 5. Cód. Tienda entre paréntesis (ej: (2346))
+                const codMatch = texto.match(/\((\d{4})\)/);
+                if (codMatch) {
+                    document.getElementById('cod_tienda').value = codMatch[1];
                 }
 
-                estado.innerText = "✅ Datos extraídos y completados.";
+                // 6. Nombre de Tienda / Destino
+                const destinoMatch = texto.match(/DESTINO[\s\:\-]+([^\(\n]+)/);
+                if (destinoMatch && destinoMatch[1].trim()) {
+                    document.getElementById('nombre_tienda').value = destinoMatch[1].trim();
+                }
+
+                estado.innerText = "✅ Datos extraídos correctamente.";
             } else {
                 estado.innerText = "⚠️ No se detectó texto. Verifique o complete manualmente.";
             }
@@ -209,7 +189,6 @@
         }
     }
 
-    // Asegurar valores por defecto al cargar la página
     document.addEventListener('DOMContentLoaded', aplicarValoresPorDefecto);
 
     document.getElementById('incidenciaForm').addEventListener('submit', async function(e) {
