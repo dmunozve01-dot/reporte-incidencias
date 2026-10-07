@@ -87,13 +87,27 @@
     </div>
 
     <script>
-    // Configuración de Supabase (Pega tus claves de Supabase aquí)
+    // Configuración de Supabase
     const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dHFsbGthcXV6ZnpvbGR6amhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM5NjE1OCwiZXhwIjoyMTA2OTcyMTU4fQ.Gaz7NZoGHdAmyjz3ZqH1T0YHVkDcl5nuWaXPgTK1sLk';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Mapeo de Códigos de Tienda a Nombres Comerciales
+    const MAPA_TIENDAS = {
+        '2346': 'SPSA INDEC18 TRU MS',
+        '2348': 'SPSA INDEC18 TRU MS',
+        '9620': 'MASS TRUJILLO - 9620',
+        '9621': 'MASS TRUJILLO - 9621'
+    };
+
     let filePacking = null;
     let filePallet = null;
+
+    function aplicarValoresPorDefecto() {
+        if (!document.getElementById('auditor').value) document.getElementById('auditor').value = 'ENRIQUE BOLIVAR';
+        if (!document.getElementById('turno').value) document.getElementById('turno').value = 'TARDE';
+        if (!document.getElementById('nombre_tienda').value) document.getElementById('nombre_tienda').value = 'SPSA INDEC18 TRU MS';
+    }
 
     function cargarFoto(tipo, input) {
         if (!input.files || input.files.length === 0) return;
@@ -109,6 +123,27 @@
             document.getElementById('preview_pallet').style.display = 'block';
             document.getElementById('preview_pallet').innerHTML = `📌 <strong>Foto Pallet:</strong> ${file.name}`;
         }
+    }
+
+    function normalizarFecha(strFecha) {
+        if (!strFecha) return '';
+        const partes = strFecha.split(/[\/\-]/);
+        if (partes.length === 3) {
+            let [p1, p2, p3] = partes;
+            // Si viene en formato YY-MM-DD o YYYY-MM-DD (ej. 26-10-06)
+            if (p1.length === 4 || (parseInt(p1) > 20 && parseInt(p3) <= 31)) {
+                const anio = p1.slice(-2);
+                const mes = p2.padStart(2, '0');
+                const dia = p3.padStart(2, '0');
+                return `${dia}/${mes}/${anio}`;
+            }
+            // Si viene en formato DD-MM-YY
+            const dia = p1.padStart(2, '0');
+            const mes = p2.padStart(2, '0');
+            const anio = p3.slice(-2);
+            return `${dia}/${mes}/${anio}`;
+        }
+        return strFecha;
     }
 
     async function escanearOCR(file) {
@@ -127,36 +162,55 @@
             });
             const data = await res.json();
             
+            aplicarValoresPorDefecto();
+
             if (data.ParsedResults && data.ParsedResults.length > 0) {
                 const texto = data.ParsedResults[0].ParsedText.toUpperCase().replace(/\n/g, ' ');
 
-                // Extracción de Fecha
-                const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9O]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/) || texto.match(/([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/);
-                if (fechaMatch) document.getElementById('fecha_validador').value = fechaMatch[1].replace(/O/g, '0');
-
-                // Extracción Nro. Pallet
+                // 1. Extraer Nro. Pallet
                 const palletMatch = texto.match(/([0-9A-Z]{2}PL\d{10,14})/);
                 if (palletMatch) {
-                    document.getElementById('nro_pallet').value = palletMatch[1].replace(/^[0-9A-Z]{2}PL/, '01PL');
+                    const fullPallet = palletMatch[1].replace(/^[0-9A-Z]{2}PL/, '01PL');
+                    document.getElementById('nro_pallet').value = fullPallet;
+
+                    // Extraer Código de Tienda directamente desde los dígitos del Nro. Pallet (posiciones 4 a 8)
+                    if (fullPallet.length >= 8) {
+                        const codExtraido = fullPallet.substring(4, 8);
+                        document.getElementById('cod_tienda').value = codExtraido;
+                        
+                        // Asignar Nombre de Tienda desde el Mapa o fallback
+                        document.getElementById('nombre_tienda').value = MAPA_TIENDAS[codExtraido] || `MASS TIENDA ${codExtraido}`;
+                    }
+                } else {
+                    // Fallback para código de tienda si no se leyó el pallet completo
+                    const codMatch = texto.match(/(\d{4})/);
+                    if (codMatch) {
+                        const cod = codMatch[1];
+                        document.getElementById('cod_tienda').value = cod;
+                        document.getElementById('nombre_tienda').value = MAPA_TIENDAS[cod] || `MASS TIENDA ${cod}`;
+                    }
                 }
 
-                // Extracción Código Tienda
-                const codMatch = texto.match(/(\d{4})/);
-                if (codMatch) {
-                    let cod = codMatch[1];
-                    if (cod === '2348' || cod === '2345') cod = '2346';
-                    document.getElementById('cod_tienda').value = cod;
+                // 2. Extraer y Formatear Fecha
+                const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9O]{1,4}[\/\-][0-9]{1,2}[\/\-][0-9]{1,4})/) || texto.match(/([0-9]{1,4}[\/\-][0-9]{1,2}[\/\-][0-9]{1,4})/);
+                if (fechaMatch) {
+                    const rawFecha = fechaMatch[1].replace(/O/g, '0');
+                    document.getElementById('fecha_validador').value = normalizarFecha(rawFecha);
                 }
 
-                estado.innerText = "✅ Datos extraídos correctamente.";
+                estado.innerText = "✅ Datos extraídos y completados.";
             } else {
-                estado.innerText = "⚠️ No se detectó texto. Ingrese los datos manualmente.";
+                estado.innerText = "⚠️ No se detectó texto. Verifique o complete manualmente.";
             }
         } catch (e) {
             console.error(e);
-            estado.innerText = "⚠️ Error al escanear. Complete manualmente.";
+            aplicarValoresPorDefecto();
+            estado.innerText = "⚠️ Error OCR. Complete los datos manualmente.";
         }
     }
+
+    // Asegurar valores por defecto al cargar la página
+    document.addEventListener('DOMContentLoaded', aplicarValoresPorDefecto);
 
     document.getElementById('incidenciaForm').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -168,7 +222,6 @@
             let urlPacking = "";
             let urlPallet = "";
 
-            // Subir foto packing a Supabase Storage
             if (filePacking) {
                 const nameP = `packing_${Date.now()}_${filePacking.name.replace(/\s+/g, '_')}`;
                 const { data, error } = await supabaseClient.storage.from('evidencias').upload(nameP, filePacking);
@@ -177,7 +230,6 @@
                 }
             }
 
-            // Subir foto pallet a Supabase Storage
             if (filePallet) {
                 const namePal = `pallet_${Date.now()}_${filePallet.name.replace(/\s+/g, '_')}`;
                 const { data, error } = await supabaseClient.storage.from('evidencias').upload(namePal, filePallet);
@@ -186,7 +238,6 @@
                 }
             }
 
-            // Guardar registro en Supabase Database
             const { data, error: dbError } = await supabaseClient.from('reportes').insert([{
                 fecha_validador: document.getElementById('fecha_validador').value,
                 auditor: document.getElementById('auditor').value,
@@ -202,7 +253,6 @@
 
             if (dbError) throw dbError;
 
-            // Redirigir al reporte recién guardado
             if (data && data.length > 0) {
                 window.location.href = `reporte.html?id=${data[0].id}`;
             } else {
