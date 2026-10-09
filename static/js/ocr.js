@@ -1,6 +1,3 @@
-/**
- * Consulta en Google Sheets (pestaña TIENDAS) el nombre comercial del código escaneado
- */
 async function buscarTiendaEnGoogleSheets(codigo) {
     if (!codigo || codigo.trim() === "") return;
 
@@ -16,9 +13,6 @@ async function buscarTiendaEnGoogleSheets(codigo) {
     }
 }
 
-/**
- * Escanea la imagen seleccionada utilizando la API de OCR.space (Engine 2)
- */
 async function escanearOCR(file) {
     const estado = document.getElementById('estado_escaneo');
     estado.innerText = "🔍 Escaneando etiqueta...";
@@ -39,13 +33,13 @@ async function escanearOCR(file) {
         if (data.ParsedResults && data.ParsedResults.length > 0) {
             const texto = data.ParsedResults[0].ParsedText.toUpperCase();
 
-            // 1. Auditor (NOMBRE: ...)
+            // 1. Auditor
             const nombreMatch = texto.match(/NOMBRE[\s\:\-]+([A-Z\xc1\xe1\xc9\xe9\xCD\xed\xD3\xf3\xDA\xfa\xD1\xf1\s]+?)(?=\s*FECHA|\s*TURNO|\n|\r|$)/i);
             if (nombreMatch && nombreMatch[1].trim().length >= 3) {
                 document.getElementById('auditor').value = nombreMatch[1].trim();
             }
 
-            // 2. Fecha Validador (FECHA: DD/MM/YY)
+            // 2. Fecha
             const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9O]{1,2})[\s\/\-\.]*([0-9O]{1,2})[\s\/\-\.]*([0-9O]{2,4})/i);
             if (fechaMatch) {
                 const dia = fechaMatch[1].replace(/O/gi, '0').padStart(2, '0');
@@ -55,19 +49,19 @@ async function escanearOCR(file) {
                 document.getElementById('fecha_validador').value = `${dia}/${mes}/${anio}`;
             }
 
-            // 3. Turno (TURNO: ...)
+            // 3. Turno
             const turnoMatch = texto.match(/TURNO[\s\:\-]+([A-Z]+)/i);
             if (turnoMatch) {
                 document.getElementById('turno').value = turnoMatch[1].trim();
             }
 
-            // 4. Nro. Pallet (01PL...)
+            // 4. Pallet
             const palletMatch = texto.match(/([0-9A-Z]{2}PL\d{10,14})/i);
             if (palletMatch) {
                 document.getElementById('nro_pallet').value = palletMatch[1].toUpperCase().replace(/^[0-9A-Z]{2}PL/, '01PL');
             }
 
-            // 5. Cód. Tienda entre paréntesis (ej: (2346)) o extraído del pallet
+            // 5. Cód Tienda
             let codExtraido = "";
             const codMatch = texto.match(/\(([0-9]{4})\)/);
             if (codMatch) {
@@ -81,7 +75,7 @@ async function escanearOCR(file) {
                 await buscarTiendaEnGoogleSheets(codExtraido);
             }
 
-            // 6. Nombre de Tienda / Destino (Fallback si no devuelve de Google Sheets)
+            // Fallback Tienda
             if (!document.getElementById('nombre_tienda').value) {
                 const tiendaConCodigoMatch = texto.match(/([A-Z0-9\s\-\.]{3,50})\s*\(([0-9]{4})\)/);
                 if (tiendaConCodigoMatch) {
@@ -97,7 +91,7 @@ async function escanearOCR(file) {
             estado.innerText = "⚠️ No se detectó texto. Complete los datos manualmente.";
         }
     } catch (e) {
-        console.error("Error en escaneo OCR:", e);
+        console.error("Error en OCR:", e);
         estado.innerText = "⚠️ Error al escanear. Complete manualmente.";
     }
 }

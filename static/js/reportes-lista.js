@@ -25,12 +25,17 @@ async function cargarReportes() {
             return;
         }
 
+        const isAdmin = getRole() === 'admin';
+
         grid.innerHTML = reportesData.map(r => `
             <div class="card-reporte" id="card-${r.id}">
                 <div class="card-header">
                     <div>
                         <strong>Pallet: ${r.nro_pallet || 'N/A'}</strong>
-                        <button onclick="eliminarReporte('${r.id}')" class="btn-danger-sm">🗑️ Borrar</button>
+                        <div style="display:inline-block; margin-left: 6px;">
+                            <a href="index.html?id=${r.id}" class="btn-warning-sm">✏️ Editar</a>
+                            ${isAdmin ? `<button onclick="eliminarReporte('${r.id}')" class="btn-danger-sm">🗑️ Borrar</button>` : ''}
+                        </div>
                     </div>
                     <span class="fecha-badge">${r.fecha_registro || ''}</span>
                 </div>
@@ -55,6 +60,11 @@ async function cargarReportes() {
 }
 
 async function eliminarReporte(id) {
+    if (getRole() !== 'admin') {
+        alert("🔒 Solo el usuario Administrador tiene permiso para eliminar registros.");
+        return;
+    }
+
     if (confirm("¿Deseas eliminar este registro de Google Sheets?")) {
         try {
             const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=deleteReport&id=${encodeURIComponent(id)}`);

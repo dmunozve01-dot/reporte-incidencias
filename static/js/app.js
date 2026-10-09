@@ -1,5 +1,8 @@
 let filePacking = null;
 let filePallet = null;
+let currentEditId = null;
+let existingUrlPacking = "";
+let existingUrlPallet = "";
 
 function comprimirImagen(file, maxDimension = 1000, calidad = 0.6) {
     return new Promise((resolve, reject) => {
@@ -46,17 +49,66 @@ function cargarFoto(tipo, input) {
         filePacking = file;
         const prev = document.getElementById('preview_packing');
         prev.style.display = 'block';
-        prev.innerHTML = `📌 <strong>Foto Packing:</strong> ${file.name}`;
+        prev.innerHTML = `📌 <strong>Nueva Foto Packing:</strong> ${file.name}`;
         escanearOCR(file);
     } else {
         filePallet = file;
         const prev = document.getElementById('preview_pallet');
         prev.style.display = 'block';
-        prev.innerHTML = `📌 <strong>Foto Pallet:</strong> ${file.name}`;
+        prev.innerHTML = `📌 <strong>Nueva Foto Pallet:</strong> ${file.name}`;
+    }
+}
+
+async function verificarModoEdicion() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    if (id) {
+        currentEditId = id;
+        const titulo = document.querySelector('.header-actions h2');
+        const btnGuardar = document.getElementById('btnGuardar');
+
+        if (titulo) titulo.innerText = "✏️ Editar Incidencia";
+        if (btnGuardar) btnGuardar.innerText = "Actualizar Incidencia";
+
+        try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getReport&id=${encodeURIComponent(id)}`);
+            const data = await res.json();
+
+            if (data.status === 'success' && data.reporte) {
+                const r = data.reporte;
+                document.getElementById('fecha_validador').value = r.fecha_validador || '';
+                document.getElementById('auditor').value = r.auditor || '';
+                document.getElementById('turno').value = r.turno || '';
+                document.getElementById('nro_pallet').value = r.nro_pallet || '';
+                document.getElementById('cod_tienda').value = r.cod_tienda || '';
+                document.getElementById('nombre_tienda').value = r.nombre_tienda || '';
+                document.getElementById('descripcion').value = r.descripcion || '';
+
+                existingUrlPacking = r.url_packing || '';
+                existingUrlPallet = r.url_pallet || '';
+
+                if (existingUrlPacking && existingUrlPacking.startsWith('http')) {
+                    const prevP = document.getElementById('preview_packing');
+                    prevP.style.display = 'block';
+                    prevP.innerHTML = `📷 <strong>Foto Packing actual:</strong> <a href="${existingUrlPacking}" target="_blank">Ver foto</a> (Sube otra solo para reemplazarla)`;
+                }
+
+                if (existingUrlPallet && existingUrlPallet.startsWith('http')) {
+                    const prevPal = document.getElementById('preview_pallet');
+                    prevPal.style.display = 'block';
+                    prevPal.innerHTML = `📷 <strong>Foto Pallet actual:</strong> <a href="${existingUrlPallet}" target="_blank">Ver foto</a> (Sube otra solo para reemplazarla)`;
+                }
+            }
+        } catch (err) {
+            console.error("Error al cargar datos para edicion:", err);
+        }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    verificarModoEdicion();
+
     document.getElementById('btn_packing_cam').addEventListener('click', () => document.getElementById('foto_packing_cam').click());
     document.getElementById('btn_packing_gal').addEventListener('click', () => document.getElementById('foto_packing_gal').click());
     document.getElementById('foto_packing_cam').addEventListener('change', function() { cargarFoto('packing', this); });
@@ -81,12 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let base64Packing = "";
             let base64Pallet = "";
 
-            if (filePacking) base64Packing = await comprimirImagen(filePacking);
-            if (filePallet) base64Pallet = await comprimirImagen(filePallet);
+            if (filePacking) {
+                base64Packing = await comprimirImagen(filePacking);
+            }
+            if (filePallet) {
+                base64Pallet = await comprimirImagen(filePallet);
+            }
 
-            btn.innerText = "⏳ Guardando en Google Sheets...";
+            btn.innerText = "⏳ Guardando cambios en Google Sheets...";
 
             const payload = {
+                id: currentEditId || "",
                 fecha_validador: document.getElementById('fecha_validador').value,
                 auditor: document.getElementById('auditor').value,
                 turno: document.getElementById('turno').value,
@@ -94,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cod_tienda: document.getElementById('cod_tienda').value,
                 nombre_tienda: document.getElementById('nombre_tienda').value,
                 descripcion: document.getElementById('descripcion').value,
-                url_packing: base64Packing,
-                url_pallet: base64Pallet
+                url_packing: base64Packing || existingUrlPacking,
+                url_pallet: base64Pallet || existingUrlPallet
             };
 
             const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -108,12 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.status === 'success') {
                 window.location.href = `reporte.html?id=${result.id}`;
             } else {
-                throw new Error(result.message || "Error al registrar en Google Sheets");
+                throw new Error(result.message || "Error al actualizar en Google Sheets");
             }
         } catch (err) {
             alert("Error al guardar: " + err.message);
             btn.disabled = false;
-            btn.innerText = "Guardar Incidencia";
+            btn.innerText = currentEditId ? "Actualizar Incidencia" : "Guardar Incidencia";
         }
     });
 });
