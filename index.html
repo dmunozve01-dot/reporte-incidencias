@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Incidencia - CD MASS</title>
     <link rel="stylesheet" href="static/css/style.css">
-    <!-- SDK oficial de Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
         <div class="header-actions">
             <h2>📷 Registro de Incidencia</h2>
-            <a href="reportes.html" class="btn-secondary">📋 Ver Historial</a>
+            <div class="header-btns">
+                <a href="reportes.html" class="btn-secondary">📋 Ver Historial</a>
+            </div>
         </div>
         
         <form id="incidenciaForm">
@@ -20,16 +20,16 @@
             <div class="form-group">
                 <label>Foto 1: Packing List / Etiqueta (Escaneo OCR)</label>
 
-                <input type="file" id="foto_packing_cam" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto('packing', this)">
-                <input type="file" id="foto_packing_gal" accept="image/*" style="display:none" onchange="cargarFoto('packing', this)">
+                <input type="file" id="foto_packing_cam" accept="image/*" capture="environment" style="display:none">
+                <input type="file" id="foto_packing_gal" accept="image/*" style="display:none">
 
                 <div class="btn-group-foto">
-                    <button type="button" class="btn-foto" onclick="document.getElementById('foto_packing_cam').click()">📸 Toma Foto</button>
-                    <button type="button" class="btn-foto btn-foto-sec" onclick="document.getElementById('foto_packing_gal').click()">📁 Galería</button>
+                    <button type="button" class="btn-foto" id="btn_packing_cam">📸 Toma Foto</button>
+                    <button type="button" class="btn-foto btn-foto-sec" id="btn_packing_gal">📁 Galería</button>
                 </div>
 
                 <div id="preview_packing" class="foto-info-box" style="display:none;"></div>
-                <small id="estado_escaneo" style="color: #2563eb; font-weight: bold; display: block; margin-top: 5px;"></small>
+                <small id="estado_escaneo" class="estado-texto"></small>
             </div>
 
             <div class="form-group">
@@ -66,12 +66,12 @@
             <div class="form-group">
                 <label>Foto 2: Pallet Físico Completo</label>
 
-                <input type="file" id="foto_pallet_cam" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto('pallet', this)">
-                <input type="file" id="foto_pallet_gal" accept="image/*" style="display:none" onchange="cargarFoto('pallet', this)">
+                <input type="file" id="foto_pallet_cam" accept="image/*" capture="environment" style="display:none">
+                <input type="file" id="foto_pallet_gal" accept="image/*" style="display:none">
 
                 <div class="btn-group-foto">
-                    <button type="button" class="btn-foto" onclick="document.getElementById('foto_pallet_cam').click()">📸 Toma Foto</button>
-                    <button type="button" class="btn-foto btn-foto-sec" onclick="document.getElementById('foto_pallet_gal').click()">📁 Galería</button>
+                    <button type="button" class="btn-foto" id="btn_pallet_cam">📸 Toma Foto</button>
+                    <button type="button" class="btn-foto btn-foto-sec" id="btn_pallet_gal">📁 Galería</button>
                 </div>
 
                 <div id="preview_pallet" class="foto-info-box" style="display:none;"></div>
@@ -86,178 +86,8 @@
         </form>
     </div>
 
-    <script>
-    // Configuración de Supabase (Pega tus credenciales reales)
-    const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dHFsbGthcXV6ZnpvbGR6amhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM5NjE1OCwiZXhwIjoyMTA2OTcyMTU4fQ.Gaz7NZoGHdAmyjz3ZqH1T0YHVkDcl5nuWaXPgTK1sLk';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let filePacking = null;
-    let filePallet = null;
-
-    function cargarFoto(tipo, input) {
-        if (!input.files || input.files.length === 0) return;
-        const file = input.files[0];
-
-        if (tipo === 'packing') {
-            filePacking = file;
-            document.getElementById('preview_packing').style.display = 'block';
-            document.getElementById('preview_packing').innerHTML = `📌 <strong>Foto Packing:</strong> ${file.name}`;
-            escanearOCR(file);
-        } else {
-            filePallet = file;
-            document.getElementById('preview_pallet').style.display = 'block';
-            document.getElementById('preview_pallet').innerHTML = `📌 <strong>Foto Pallet:</strong> ${file.name}`;
-        }
-    }
-
-    async function escanearOCR(file) {
-        const estado = document.getElementById('estado_escaneo');
-        estado.innerText = "🔍 Escaneando etiqueta...";
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('apikey', 'helloworld');
-        formData.append('language', 'spa');
-        formData.append('OCREngine', '2');
-
-        try {
-            const res = await fetch('https://api.ocr.space/parse/image', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-
-            if (data.ParsedResults && data.ParsedResults.length > 0) {
-                const texto = data.ParsedResults[0].ParsedText.toUpperCase();
-
-                // 1. Auditor (NOMBRE: <nombre>)
-                const nombreMatch = texto.match(/NOMBRE[\s\:\-]+([A-Z\xc1\xe1\xc9\xe9\xCD\xed\xD3\xf3\xDA\xfa\xD1\xf1\s]+?)(?=\s*FECHA|\s*TURNO|\n|\r|$)/i);
-                if (nombreMatch && nombreMatch[1].trim().length >= 3) {
-                    document.getElementById('auditor').value = nombreMatch[1].trim();
-                }
-
-                // 2. Fecha Validador (FECHA: <DD/MM/YY>)
-                const fechaMatch = texto.match(/FECHA[\s\:\-]+([0-9O]{1,2})[\s\/\-\.]*([0-9O]{1,2})[\s\/\-\.]*([0-9O]{2,4})/i);
-                if (fechaMatch) {
-                    const dia = fechaMatch[1].replace(/O/gi, '0').padStart(2, '0');
-                    const mes = fechaMatch[2].replace(/O/gi, '0').padStart(2, '0');
-                    let anio = fechaMatch[3].replace(/O/gi, '0');
-                    if (anio.length === 4) anio = anio.slice(-2);
-                    document.getElementById('fecha_validador').value = `${dia}/${mes}/${anio}`;
-                }
-
-                // 3. Turno (TURNO: <turno>)
-                const turnoMatch = texto.match(/TURNO[\s\:\-]+([A-Z]+)/i);
-                if (turnoMatch) {
-                    document.getElementById('turno').value = turnoMatch[1].trim();
-                }
-
-                // 4. Nro. Pallet (01PL...)
-                const palletMatch = texto.match(/([0-9A-Z]{2}PL\d{10,14})/i);
-                if (palletMatch) {
-                    document.getElementById('nro_pallet').value = palletMatch[1].toUpperCase().replace(/^[0-9A-Z]{2}PL/, '01PL');
-                }
-
-                // 5. Nombre de Tienda y Cód. Tienda juntos: "SPSA INDEC18 TRU MS (2346)"
-                const tiendaConCodigoMatch = texto.match(/([A-Z0-9\s\-\.]{3,50})\s*\(([0-9]{4})\)/);
-                if (tiendaConCodigoMatch) {
-                    let nombreLimpio = tiendaConCodigoMatch[1].trim();
-                    // Limpiar la palabra DESTINO si venía pegada antes del nombre
-                    nombreLimpio = nombreLimpio.replace(/^.*DESTINO[\s\:\-]*/i, '').trim();
-                    nombreLimpio = nombreLimpio.replace(/[\®\©\™\*]/g, '').trim();
-
-                    if (nombreLimpio.length >= 3) {
-                        document.getElementById('nombre_tienda').value = nombreLimpio;
-                    }
-                    document.getElementById('cod_tienda').value = tiendaConCodigoMatch[2];
-                } else {
-                    // Fallback solo para el código de tienda entre paréntesis
-                    const codMatch = texto.match(/\(([0-9]{4})\)/);
-                    if (codMatch) document.getElementById('cod_tienda').value = codMatch[1];
-                }
-
-                estado.innerText = "✅ Datos extraídos correctamente.";
-            } else {
-                estado.innerText = "⚠️ No se detectó texto. Complete los datos manualmente.";
-            }
-        } catch (e) {
-            console.error(e);
-            estado.innerText = "⚠️ Error al escanear. Complete manualmente.";
-        }
-    }
-
-    document.getElementById('incidenciaForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('btnGuardar');
-        btn.disabled = true;
-        btn.innerText = "⏳ Guardando e imágen(es)...";
-
-        try {
-            let urlPacking = "";
-            let urlPallet = "";
-
-            // Subida limpia de Foto 1 (Packing List)
-            if (filePacking) {
-                const extP = filePacking.name.split('.').pop() || 'jpg';
-                const cleanNameP = `packing_${Date.now()}.${extP}`;
-
-                const { data: uploadP, error: errP } = await supabaseClient.storage
-                    .from('evidencias')
-                    .upload(cleanNameP, filePacking, { cacheControl: '3600', upsert: true });
-
-                if (errP) {
-                    alert("⚠️ Error subiendo Foto 1 a Supabase: " + errP.message + "\n\nVerifica que el Bucket 'evidencias' sea Público.");
-                } else {
-                    const { data: urlDataP } = supabaseClient.storage.from('evidencias').getPublicUrl(cleanNameP);
-                    urlPacking = urlDataP.publicUrl;
-                }
-            }
-
-            // Subida limpia de Foto 2 (Pallet Físico)
-            if (filePallet) {
-                const extPal = filePallet.name.split('.').pop() || 'jpg';
-                const cleanNamePal = `pallet_${Date.now()}.${extPal}`;
-
-                const { data: uploadPal, error: errPal } = await supabaseClient.storage
-                    .from('evidencias')
-                    .upload(cleanNamePal, filePallet, { cacheControl: '3600', upsert: true });
-
-                if (errPal) {
-                    alert("⚠️ Error subiendo Foto 2 a Supabase: " + errPal.message);
-                } else {
-                    const { data: urlDataPal } = supabaseClient.storage.from('evidencias').getPublicUrl(cleanNamePal);
-                    urlPallet = urlDataPal.publicUrl;
-                }
-            }
-
-            // Guardar en la tabla de Supabase
-            const { data, error: dbError } = await supabaseClient.from('reportes').insert([{
-                fecha_validador: document.getElementById('fecha_validador').value,
-                auditor: document.getElementById('auditor').value,
-                turno: document.getElementById('turno').value,
-                nro_pallet: document.getElementById('nro_pallet').value,
-                cod_tienda: document.getElementById('cod_tienda').value,
-                nombre_tienda: document.getElementById('nombre_tienda').value,
-                origen: "CD MASS TRUJILLO",
-                descripcion: document.getElementById('descripcion').value,
-                url_packing: urlPacking,
-                url_pallet: urlPallet
-            }]).select();
-
-            if (dbError) throw dbError;
-
-            if (data && data.length > 0) {
-                window.location.href = `reporte.html?id=${data[0].id}`;
-            } else {
-                window.location.href = "reporte.html";
-            }
-        } catch (err) {
-            alert("Error al guardar: " + err.message);
-            btn.disabled = false;
-            btn.innerText = "Guardar Incidencia";
-        }
-    });
-    </script>
+    <script src="static/js/config.js"></script>
+    <script src="static/js/ocr.js"></script>
+    <script src="static/js/app.js"></script>
 </body>
 </html>

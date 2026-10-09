@@ -4,29 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Incidencias - CD MASS</title>
-    
-    <!-- Estilos de la aplicación -->
     <link rel="stylesheet" href="static/css/style.css">
-    
-    <!-- Librería SheetJS para exportar a Excel localmente -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container container-wide">
         <div class="header-actions">
             <h2>📋 Historial de Incidencias</h2>
-            <div>
+            <div class="header-btns">
                 <a href="index.html" class="btn-secondary">➕ Nuevo Reporte</a>
                 <button onclick="descargarExcel()" class="btn-success">📊 Descargar Excel</button>
             </div>
         </div>
 
-        <div id="loading" style="margin-top:20px; font-weight:bold;">⏳ Cargando historial desde Google Sheets...</div>
+        <div id="loading" style="margin-top:20px; font-weight:bold; text-align: center;">⏳ Cargando historial desde Google Sheets...</div>
         <div id="gridReportes" class="reportes-grid" style="display:none;"></div>
     </div>
 
-    <!-- Visor Modal de Imágenes -->
-    <div id="imageModal" class="modal">
+    <!-- Visor Modal Oculto por defecto -->
+    <div id="imageModal" class="modal" style="display: none;">
         <div class="modal-bar">
             <span id="modalTitle" class="modal-filename">imagen.jpg</span>
             <div class="modal-actions">
@@ -39,7 +35,6 @@
         </div>
     </div>
 
-    <!-- Carga de Scripts Modulares (Sin SDK de Supabase) -->
     <script src="static/js/config.js"></script>
     <script src="static/js/reportes-lista.js"></script>
 </body>

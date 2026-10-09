@@ -1,4 +1,3 @@
-/* Reset general y bloqueo de desbordamiento horizontal */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -10,7 +9,7 @@
 html, body {
     width: 100%;
     max-width: 100vw;
-    overflow-x: hidden; /* Evita que la pantalla se desplace a los lados */
+    overflow-x: hidden;
     background-color: #f3f4f6;
     color: #1f2937;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -21,7 +20,6 @@ body {
     min-height: 100vh;
 }
 
-/* Contenedores Responsivos */
 .container {
     width: 100%;
     max-width: 520px;
@@ -36,7 +34,6 @@ body {
     max-width: 900px;
 }
 
-/* Encabezado sin solapamiento */
 .header-actions {
     display: flex;
     flex-direction: column;
@@ -53,7 +50,6 @@ body {
     line-height: 1.3;
 }
 
-/* Botones en Cuadrícula en Móvil */
 .header-btns {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -73,7 +69,6 @@ body {
     }
 }
 
-/* Estilos de Botones */
 .btn-secondary, .btn-success, .btn {
     display: inline-flex;
     align-items: center;
@@ -87,7 +82,6 @@ body {
     cursor: pointer;
     text-align: center;
     width: 100%;
-    box-sizing: border-box;
 }
 
 .btn-secondary {
@@ -126,7 +120,6 @@ body {
 
 .btn-danger-sm:hover { background-color: #dc2626; }
 
-/* Grid de Reportes y Tarjetas */
 .reportes-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -208,7 +201,6 @@ body {
     cursor: pointer;
 }
 
-/* Formularios */
 .form-group {
     margin-bottom: 16px;
 }
@@ -267,14 +259,13 @@ body {
     margin-top: 6px;
 }
 
-/* Modal Visor de Imagen (Fijo y Aislado de la Pantalla) */
 .modal {
     display: none;
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.9);
     z-index: 99999;
     padding: 10px;
