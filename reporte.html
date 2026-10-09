@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Generado</title>
+    <title>Reporte Generado - CD MASS</title>
     <link rel="stylesheet" href="static/css/style.css">
-    <!-- SDK de Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -29,7 +27,7 @@
             <p id="descripcion">-</p>
         </div>
 
-        <h3 style="margin-top: 20px;">Evidencias Fotograficas</h3>
+        <h3 style="margin-top: 20px;">Evidencias Fotográficas</h3>
         <div class="fotos-comparativa">
             <div id="box_packing" style="display: none;">
                 <small><strong>Etiqueta / Packing List</strong></small>
@@ -63,83 +61,8 @@
         </div>
     </div>
 
-    <script>
-    // Configuración de Supabase (Pega tus credenciales)
-    const SUPABASE_URL = 'https://qutqllkaquzfzoldzjhe.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dHFsbGthcXV6ZnpvbGR6amhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM5NjE1OCwiZXhwIjoyMTA2OTcyMTU4fQ.Gaz7NZoGHdAmyjz3ZqH1T0YHVkDcl5nuWaXPgTK1sLk';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    async function cargarReporte() {
-        const params = new URLSearchParams(window.location.search);
-        const idParam = params.get('id');
-
-        try {
-            let query = _supabase.from('reportes').select('*');
-            
-            if (idParam) {
-                query = query.eq('id', idParam);
-            } else {
-                query = query.order('id', { ascending: false }).limit(1);
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            if (!data || data.length === 0) {
-                document.getElementById('fecha_reporte').innerText = 'No se encontró el reporte.';
-                return;
-            }
-
-            const r = data[0];
-
-            document.getElementById('fecha_reporte').innerText = new Date(r.created_at).toLocaleString();
-            document.getElementById('fecha_validador').innerText = r.fecha_validador || '-';
-            document.getElementById('auditor').innerText = r.auditor || '-';
-            document.getElementById('turno').innerText = r.turno || '-';
-            document.getElementById('nro_pallet').innerText = r.nro_pallet || '-';
-            document.getElementById('cod_tienda').innerText = r.cod_tienda || '-';
-            document.getElementById('nombre_tienda').innerText = r.nombre_tienda || '-';
-            document.getElementById('origen').innerText = r.origen || 'CD MASS TRUJILLO';
-            document.getElementById('descripcion').innerText = r.descripcion || '-';
-
-            if (r.url_packing) {
-                document.getElementById('box_packing').style.display = 'block';
-                document.getElementById('img_packing').src = r.url_packing;
-            }
-
-            if (r.url_pallet) {
-                document.getElementById('box_pallet').style.display = 'block';
-                document.getElementById('img_pallet').src = r.url_pallet;
-            }
-        } catch (err) {
-            console.error(err);
-            document.getElementById('fecha_reporte').innerText = 'Error al cargar los datos.';
-        }
-    }
-
-    function abrirModal(src, titulo) {
-        document.getElementById('modalImage').src = src;
-        document.getElementById('modalDownload').href = src;
-        document.getElementById('modalTitle').innerText = titulo || 'Evidencia.jpg';
-        document.getElementById('imageModal').style.display = 'flex';
-    }
-
-    function cerrarModal() {
-        document.getElementById('imageModal').style.display = 'none';
-    }
-
-    function imprimirFoto() {
-        const imgSrc = document.getElementById('modalImage').src;
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`<html><head><title>Imprimir Evidencia</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;"><img src="${imgSrc}" style="max-width:100%;max-height:100vh;" onload="window.print();window.close();"/></body></html>`);
-        printWindow.document.close();
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') cerrarModal();
-    });
-
-    document.addEventListener('DOMContentLoaded', cargarReporte);
-    </script>
+    <!-- Carga de Scripts Modulares -->
+    <script src="static/js/config.js"></script>
+    <script src="static/js/reporte-detalle.js"></script>
 </body>
 </html>
