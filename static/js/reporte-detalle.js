@@ -1,3 +1,15 @@
+function limpiarFechaValidador(fecha) {
+    if (!fecha) return '-';
+    let str = String(fecha).trim();
+    if (str.includes('T')) {
+        const partes = str.split('T')[0].split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+    }
+    return str;
+}
+
 async function cargarReporte() {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get('id');
@@ -19,7 +31,7 @@ async function cargarReporte() {
         const r = data.reporte;
 
         document.getElementById('fecha_reporte').innerText = r.fecha_registro || '-';
-        document.getElementById('fecha_validador').innerText = r.fecha_validador || '-';
+        document.getElementById('fecha_validador').innerText = limpiarFechaValidador(r.fecha_validador);
         document.getElementById('auditor').innerText = r.auditor || '-';
         document.getElementById('turno').innerText = r.turno || '-';
         document.getElementById('nro_pallet').innerText = r.nro_pallet || '-';
@@ -38,7 +50,7 @@ async function cargarReporte() {
             document.getElementById('img_pallet').src = r.url_pallet;
         }
     } catch (err) {
-        console.error("Error al cargar el reporte:", err);
+        console.error("Error al cargar reporte:", err);
         document.getElementById('fecha_reporte').innerText = 'Error al cargar los datos.';
     }
 }

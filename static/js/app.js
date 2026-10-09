@@ -1,17 +1,43 @@
 let filePacking = null;
 let filePallet = null;
 
-// Convertidor de imagen a formato Base64 para almacenar en Google Sheets
-function fileToBase64(file) {
+// Comprime la imagen en el celular antes de enviar a Apps Script
+function comprimirImagen(file, maxDimension = 1200, calidad = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const base64Res = canvas.toDataURL('image/jpeg', calidad);
+                resolve(base64Res);
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
     });
 }
 
-// Cargar y previsualizar imágenes
 function cargarFoto(tipo, input) {
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
@@ -30,42 +56,35 @@ function cargarFoto(tipo, input) {
     }
 }
 
-// Escuchadores de eventos
 document.addEventListener('DOMContentLoaded', () => {
-    // Foto 1: Packing List
     document.getElementById('btn_packing_cam').addEventListener('click', () => document.getElementById('foto_packing_cam').click());
     document.getElementById('btn_packing_gal').addEventListener('click', () => document.getElementById('foto_packing_gal').click());
     document.getElementById('foto_packing_cam').addEventListener('change', function() { cargarFoto('packing', this); });
     document.getElementById('foto_packing_gal').addEventListener('change', function() { cargarFoto('packing', this); });
 
-    // Foto 2: Pallet Físico
     document.getElementById('btn_pallet_cam').addEventListener('click', () => document.getElementById('foto_pallet_cam').click());
     document.getElementById('btn_pallet_gal').addEventListener('click', () => document.getElementById('foto_pallet_gal').click());
     document.getElementById('foto_pallet_cam').addEventListener('change', function() { cargarFoto('pallet', this); });
     document.getElementById('foto_pallet_gal').addEventListener('change', function() { cargarFoto('pallet', this); });
 
-    // Consulta de Tienda en Vivo por código
     document.getElementById('cod_tienda').addEventListener('input', function() {
         buscarTiendaEnGoogleSheets(this.value.trim());
     });
 
-    // Envío del Formulario
     document.getElementById('incidenciaForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnGuardar');
         btn.disabled = true;
-        btn.innerText = "⏳ Guardando incidencia en Google Sheets...";
+        btn.innerText = "⏳ Comprimiendo e instalando en Google Drive...";
 
         try {
             let base64Packing = "";
             let base64Pallet = "";
 
-            if (filePacking) {
-                base64Packing = await fileToBase64(filePacking);
-            }
-            if (filePallet) {
-                base64Pallet = await fileToBase64(filePallet);
-            }
+            if (filePacking) base64Packing = await comprimirImagen(filePacking);
+            if (filePallet) base64Pallet = await comprimirImagen(filePallet);
+
+            btn.innerText = "⏳ Guardando incidencia en Google Sheets...";
 
             const payload = {
                 fecha_validador: document.getElementById('fecha_validador').value,
@@ -92,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.message || "Error al registrar en Google Sheets");
             }
         } catch (err) {
-            alert("Error al guardar la incidencia: " + err.message);
+            alert("Error al guardar: " + err.message);
             btn.disabled = false;
             btn.innerText = "Guardar Incidencia";
         }

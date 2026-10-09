@@ -1,5 +1,17 @@
 let reportesData = [];
 
+function limpiarFechaValidador(fecha) {
+    if (!fecha) return '-';
+    let str = String(fecha).trim();
+    if (str.includes('T')) {
+        const partes = str.split('T')[0].split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+    }
+    return str;
+}
+
 async function cargarReportes() {
     const loading = document.getElementById('loading');
     const grid = document.getElementById('gridReportes');
@@ -16,7 +28,7 @@ async function cargarReportes() {
         loading.style.display = 'none';
 
         if (reportesData.length === 0) {
-            grid.innerHTML = '<p style="margin-top:20px;">No hay incidencias registradas en Google Sheets.</p>';
+            grid.innerHTML = '<p style="margin-top:20px; text-align: center;">No hay incidencias registradas en Google Sheets.</p>';
             grid.style.display = 'block';
             return;
         }
@@ -31,13 +43,13 @@ async function cargarReportes() {
                     <span class="fecha-badge">${r.fecha_registro || ''}</span>
                 </div>
                 <div class="card-body">
-                    <p><strong>Fecha Validador:</strong> ${r.fecha_validador || ''}</p>
-                    <p><strong>Auditor:</strong> ${r.auditor || ''} | <strong>Turno:</strong> ${r.turno || ''}</p>
-                    <p><strong>Tienda:</strong> (${r.cod_tienda || ''}) ${r.nombre_tienda || ''}</p>
-                    <div class="desc-box"><strong>Incidencia:</strong> ${r.descripcion || ''}</div>
+                    <p><strong>Fecha Validador:</strong> ${limpiarFechaValidador(r.fecha_validador)}</p>
+                    <p><strong>Auditor:</strong> ${r.auditor || '-'} | <strong>Turno:</strong> ${r.turno || '-'}</p>
+                    <p><strong>Tienda:</strong> (${r.cod_tienda || '-'}) ${r.nombre_tienda || ''}</p>
+                    <div class="desc-box"><strong>Incidencia:</strong> ${r.descripcion || '-'}</div>
                     <div class="fotos-comparativa">
-                        ${r.url_packing ? `<div><small>Packing</small><img src="${r.url_packing}" class="img-preview" onclick="abrirModal('${r.url_packing}', 'Packing_${r.nro_pallet}.jpg')"></div>` : ''}
-                        ${r.url_pallet ? `<div><small>Pallet</small><img src="${r.url_pallet}" class="img-preview" onclick="abrirModal('${r.url_pallet}', 'Pallet_${r.nro_pallet}.jpg')"></div>` : ''}
+                        ${r.url_packing ? `<div class="foto-item"><small>Packing</small><img src="${r.url_packing}" class="img-preview" onclick="abrirModal('${r.url_packing}', 'Packing_${r.nro_pallet}.jpg')"></div>` : ''}
+                        ${r.url_pallet ? `<div class="foto-item"><small>Pallet</small><img src="${r.url_pallet}" class="img-preview" onclick="abrirModal('${r.url_pallet}', 'Pallet_${r.nro_pallet}.jpg')"></div>` : ''}
                     </div>
                 </div>
             </div>
@@ -46,7 +58,7 @@ async function cargarReportes() {
         grid.style.display = 'grid';
     } catch (err) {
         console.error("Error al cargar reportes:", err);
-        loading.innerText = "Error al cargar historial desde Google Sheets.";
+        loading.innerText = "⚠️ Error al cargar historial desde Google Sheets.";
     }
 }
 
@@ -61,7 +73,7 @@ async function eliminarReporte(id) {
                 if (card) card.remove();
                 reportesData = reportesData.filter(r => r.id !== id);
             } else {
-                alert("No se pudo eliminar el registro de Google Sheets.");
+                alert("No se pudo eliminar el registro.");
             }
         } catch (e) {
             alert("Error de conexión al intentar eliminar.");
