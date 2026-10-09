@@ -1,9 +1,9 @@
 let filePacking = null;
 let filePallet = null;
 
-// Comprime la imagen en el celular antes de enviar a Apps Script
-function comprimirImagen(file, maxDimension = 1200, calidad = 0.7) {
+function comprimirImagen(file, maxDimension = 1000, calidad = 0.6) {
     return new Promise((resolve, reject) => {
+        if (!file) return resolve("");
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
@@ -32,9 +32,9 @@ function comprimirImagen(file, maxDimension = 1200, calidad = 0.7) {
                 const base64Res = canvas.toDataURL('image/jpeg', calidad);
                 resolve(base64Res);
             };
-            img.onerror = (err) => reject(err);
+            img.onerror = () => resolve("");
         };
-        reader.onerror = (err) => reject(err);
+        reader.onerror = () => resolve("");
     });
 }
 
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const btn = document.getElementById('btnGuardar');
         btn.disabled = true;
-        btn.innerText = "⏳ Comprimiendo e instalando en Google Drive...";
+        btn.innerText = "⏳ Procesando imágenes...";
 
         try {
             let base64Packing = "";
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (filePacking) base64Packing = await comprimirImagen(filePacking);
             if (filePallet) base64Pallet = await comprimirImagen(filePallet);
 
-            btn.innerText = "⏳ Guardando incidencia en Google Sheets...";
+            btn.innerText = "⏳ Guardando en Google Sheets...";
 
             const payload = {
                 fecha_validador: document.getElementById('fecha_validador').value,
