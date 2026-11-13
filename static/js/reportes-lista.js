@@ -1,7 +1,16 @@
 let reportesData = [];
 
 function esUrlValida(url) {
-    return url && typeof url === 'string' && (url.startsWith('http') || url.startsWith('data:image'));
+    return url && typeof url === 'string' && url.length > 5;
+}
+
+function formatearFecha(fecha) {
+    if (!fecha) return '-';
+    let str = String(fecha);
+    if (str.includes('T')) {
+        return str.split('T')[0].split('-').reverse().join('/');
+    }
+    return str;
 }
 
 async function cargarReportes() {
@@ -40,7 +49,7 @@ async function cargarReportes() {
                     <span class="fecha-badge">${r.fecha_registro || ''}</span>
                 </div>
                 <div class="card-body">
-                    <p><strong>Fecha Validador:</strong> ${r.fecha_validador || '-'}</p>
+                    <p><strong>Fecha Validador:</strong> ${formatearFecha(r.fecha_validador)}</p>
                     <p><strong>Auditor:</strong> ${r.auditor || '-'} | <strong>Turno:</strong> ${r.turno || '-'}</p>
                     <p><strong>Tienda:</strong> (${r.cod_tienda || '-'}) ${r.nombre_tienda || ''}</p>
                     <div class="desc-box"><strong>Incidencia:</strong> ${r.descripcion || '-'}</div>
@@ -75,7 +84,7 @@ async function eliminarReporte(id) {
                 if (card) card.remove();
                 reportesData = reportesData.filter(r => r.id !== id);
             } else {
-                alert("No se pudo eliminar el registro.");
+                alert("No se pudo eliminar: " + result.message);
             }
         } catch (e) {
             alert("Error de conexión al intentar eliminar.");

@@ -1,7 +1,6 @@
 function limpiarFechaValidador(fecha) {
     if (!fecha) return '-';
     let str = String(fecha).trim();
-    // Arregla el formato si viene con la "T" y la "Z" de Google
     if (str.includes('T')) {
         const soloFecha = str.split('T')[0]; 
         const partes = soloFecha.split('-');
@@ -17,7 +16,6 @@ async function cargarReporte() {
     const idParam = params.get('id');
     const dataParam = params.get('data');
 
-    // OPCIÓN 1: Los datos vienen directo de la URL (al guardar)
     if (dataParam) {
         try {
             const r = JSON.parse(decodeURIComponent(dataParam));
@@ -46,7 +44,6 @@ async function cargarReporte() {
         }
     }
 
-    // OPCIÓN 2: Los datos se buscan en Google (desde el historial)
     try {
         let url = `${GOOGLE_SCRIPT_URL}?action=getReport`;
         if (idParam) url += `&id=${encodeURIComponent(idParam)}`;

@@ -91,13 +91,13 @@ async function verificarModoEdicion() {
                 if (existingUrlPacking) {
                     const prevP = document.getElementById('preview_packing');
                     prevP.style.display = 'block';
-                    prevP.innerHTML = `📷 <strong>Foto Packing actual:</strong> <img src="${existingUrlPacking}" style="max-height: 50px; display: block; margin-top:5px; border-radius:4px;"> <small>(Sube otra para reemplazar)</small>`;
+                    prevP.innerHTML = `📷 <strong>Foto Packing actual:</strong> <img src="${existingUrlPacking}" style="max-height: 50px; display: block; margin-top:5px; border-radius:4px;"> <small>(Sube otra solo para reemplazarla)</small>`;
                 }
 
                 if (existingUrlPallet) {
                     const prevPal = document.getElementById('preview_pallet');
                     prevPal.style.display = 'block';
-                    prevPal.innerHTML = `📷 <strong>Foto Pallet actual:</strong> <img src="${existingUrlPallet}" style="max-height: 50px; display: block; margin-top:5px; border-radius:4px;"> <small>(Sube otra para reemplazar)</small>`;
+                    prevPal.innerHTML = `📷 <strong>Foto Pallet actual:</strong> <img src="${existingUrlPallet}" style="max-height: 50px; display: block; margin-top:5px; border-radius:4px;"> <small>(Sube otra solo para reemplazarla)</small>`;
                 }
             }
         } catch (err) {
@@ -133,14 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let base64Packing = "";
             let base64Pallet = "";
 
-            if (filePacking) {
-                base64Packing = await comprimirImagen(filePacking);
-            }
-            if (filePallet) {
-                base64Pallet = await comprimirImagen(filePallet);
-            }
+            if (filePacking) base64Packing = await comprimirImagen(filePacking);
+            if (filePallet) base64Pallet = await comprimirImagen(filePallet);
 
-            btn.innerText = "⏳ Guardando en Google Sheets...";
+            btn.innerText = "⏳ Guardando cambios en Google Sheets...";
 
             const payload = {
                 id: currentEditId || "",
@@ -168,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const datosReporte = encodeURIComponent(JSON.stringify(payload));
                 window.location.href = `reporte.html?id=${result.id}&data=${datosReporte}`;
             } else {
-                throw new Error(result.message || "Error al actualizar");
+                throw new Error(result.message || "Error al actualizar en Google Sheets");
             }
         } catch (err) {
             alert("Error al guardar: " + err.message);
