@@ -1,6 +1,6 @@
 // Configuración Global de Google Apps Script Web App
 // Reemplaza esta URL con la que obtengas al desplegar tu Apps Script en Google Sheets
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwL5aMRL75l9BhOg89VAFMpY2f6sPlqCS6fq6Vgfw6eyeNtdVvOaYxrAhNyzhKa2UNX/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynCV9vmmcsGAJVpUJqV1qgYFt51K7ginLUM86fSsDzqsN9Q8y9aUrH8Pouk-p7fnZ1/exec';
 
 const ADMIN_PIN = "Marceloo159";
 
