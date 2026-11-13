@@ -1,8 +1,10 @@
 function limpiarFechaValidador(fecha) {
     if (!fecha) return '-';
     let str = String(fecha).trim();
+    // Arregla el formato si viene con la "T" y la "Z" de Google
     if (str.includes('T')) {
-        const partes = str.split('T')[0].split('-');
+        const soloFecha = str.split('T')[0]; 
+        const partes = soloFecha.split('-');
         if (partes.length === 3) {
             return `${partes[2]}/${partes[1]}/${partes[0]}`;
         }
@@ -13,12 +15,41 @@ function limpiarFechaValidador(fecha) {
 async function cargarReporte() {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get('id');
+    const dataParam = params.get('data');
 
+    // OPCIÓN 1: Los datos vienen directo de la URL (al guardar)
+    if (dataParam) {
+        try {
+            const r = JSON.parse(decodeURIComponent(dataParam));
+            
+            document.getElementById('fecha_reporte').innerText = new Date().toLocaleString('es-PE');
+            document.getElementById('fecha_validador').innerText = limpiarFechaValidador(r.fecha_validador);
+            document.getElementById('auditor').innerText = r.auditor || '-';
+            document.getElementById('turno').innerText = r.turno || '-';
+            document.getElementById('nro_pallet').innerText = r.nro_pallet || '-';
+            document.getElementById('cod_tienda').innerText = r.cod_tienda || '-';
+            document.getElementById('nombre_tienda').innerText = r.nombre_tienda || '-';
+            document.getElementById('origen').innerText = 'CD MASS TRUJILLO';
+            document.getElementById('descripcion').innerText = r.descripcion || '-';
+
+            if (r.url_packing) {
+                document.getElementById('box_packing').style.display = 'block';
+                document.getElementById('img_packing').src = r.url_packing;
+            }
+            if (r.url_pallet) {
+                document.getElementById('box_pallet').style.display = 'block';
+                document.getElementById('img_pallet').src = r.url_pallet;
+            }
+            return; 
+        } catch (e) {
+            console.error("Error al leer datos de la URL, consultando Google...", e);
+        }
+    }
+
+    // OPCIÓN 2: Los datos se buscan en Google (desde el historial)
     try {
         let url = `${GOOGLE_SCRIPT_URL}?action=getReport`;
-        if (idParam) {
-            url += `&id=${encodeURIComponent(idParam)}`;
-        }
+        if (idParam) url += `&id=${encodeURIComponent(idParam)}`;
 
         const res = await fetch(url);
         const data = await res.json();
@@ -44,7 +75,6 @@ async function cargarReporte() {
             document.getElementById('box_packing').style.display = 'block';
             document.getElementById('img_packing').src = r.url_packing;
         }
-
         if (r.url_pallet) {
             document.getElementById('box_pallet').style.display = 'block';
             document.getElementById('img_pallet').src = r.url_pallet;
