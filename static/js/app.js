@@ -88,16 +88,16 @@ async function verificarModoEdicion() {
                 existingUrlPacking = r.url_packing || '';
                 existingUrlPallet = r.url_pallet || '';
 
-                if (existingUrlPacking && existingUrlPacking.startsWith('http')) {
+                if (existingUrlPacking) {
                     const prevP = document.getElementById('preview_packing');
                     prevP.style.display = 'block';
-                    prevP.innerHTML = `📷 <strong>Foto Packing actual:</strong> <a href="${existingUrlPacking}" target="_blank">Ver foto</a> (Sube otra solo para reemplazarla)`;
+                    prevP.innerHTML = `📷 <strong>Foto Packing actual:</strong> <img src="${existingUrlPacking}" style="max-height: 50px; display: block; margin-top:5px; border-radius:4px;"> <small>(Sube otra para reemplazar)</small>`;
                 }
 
-                if (existingUrlPallet && existingUrlPallet.startsWith('http')) {
+                if (existingUrlPallet) {
                     const prevPal = document.getElementById('preview_pallet');
                     prevPal.style.display = 'block';
-                    prevPal.innerHTML = `📷 <strong>Foto Pallet actual:</strong> <a href="${existingUrlPallet}" target="_blank">Ver foto</a> (Sube otra solo para reemplazarla)`;
+                    prevPal.innerHTML = `📷 <strong>Foto Pallet actual:</strong> <img src="${existingUrlPallet}" style="max-height: 50px; display: block; margin-top:5px; border-radius:4px;"> <small>(Sube otra para reemplazar)</small>`;
                 }
             }
         } catch (err) {
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 base64Pallet = await comprimirImagen(filePallet);
             }
 
-            btn.innerText = "⏳ Guardando cambios en Google Sheets...";
+            btn.innerText = "⏳ Guardando en Google Sheets...";
 
             const payload = {
                 id: currentEditId || "",
@@ -155,12 +155,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 url_pallet: base64Pallet || existingUrlPallet
             };
 
-            // AQUI ESTÁ EL ARREGLO DEL "FAILED TO FETCH"
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8' // Evita el bloqueo del navegador
-                },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload),
                 redirect: 'follow'
             });
@@ -168,9 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.status === 'success') {
-                window.location.href = `reporte.html?id=${result.id}`;
+                const datosReporte = encodeURIComponent(JSON.stringify(payload));
+                window.location.href = `reporte.html?id=${result.id}&data=${datosReporte}`;
             } else {
-                throw new Error(result.message || "Error al actualizar en Google Sheets");
+                throw new Error(result.message || "Error al actualizar");
             }
         } catch (err) {
             alert("Error al guardar: " + err.message);
