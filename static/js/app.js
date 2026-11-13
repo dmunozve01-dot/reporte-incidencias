@@ -155,9 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 url_pallet: base64Pallet || existingUrlPallet
             };
 
+            // AQUI ESTÁ EL ARREGLO DEL "FAILED TO FETCH"
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify(payload)
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8' // Evita el bloqueo del navegador
+                },
+                body: JSON.stringify(payload),
+                redirect: 'follow'
             });
 
             const result = await response.json();
