@@ -16,6 +16,7 @@ async function cargarReporte() {
     const idParam = params.get('id');
     const dataParam = params.get('data');
 
+    // 1. Mostrar datos de texto al instante desde la URL
     if (dataParam) {
         try {
             const r = JSON.parse(decodeURIComponent(dataParam));
@@ -29,56 +30,50 @@ async function cargarReporte() {
             document.getElementById('nombre_tienda').innerText = r.nombre_tienda || '-';
             document.getElementById('origen').innerText = 'CD MASS TRUJILLO';
             document.getElementById('descripcion').innerText = r.descripcion || '-';
-
-            if (r.url_packing) {
-                document.getElementById('box_packing').style.display = 'block';
-                document.getElementById('img_packing').src = r.url_packing;
-            }
-            if (r.url_pallet) {
-                document.getElementById('box_pallet').style.display = 'block';
-                document.getElementById('img_pallet').src = r.url_pallet;
-            }
-            return; 
         } catch (e) {
             console.error("Error al leer datos de la URL, consultando Google...", e);
         }
     }
 
-    try {
-        let url = `${GOOGLE_SCRIPT_URL}?action=getReport`;
-        if (idParam) url += `&id=${encodeURIComponent(idParam)}`;
+    // 2. Si existe un ID, conectarse a Google Sheets para descargar las imágenes (Se eliminó el return previo)
+    if (idParam) {
+        try {
+            let url = `${GOOGLE_SCRIPT_URL}?action=getReport&id=${encodeURIComponent(idParam)}`;
+            const res = await fetch(url);
+            const data = await res.json();
 
-        const res = await fetch(url);
-        const data = await res.json();
+            if (data.status === 'success' && data.reporte) {
+                const r = data.reporte;
 
-        if (data.status !== 'success' || !data.reporte) {
-            document.getElementById('fecha_reporte').innerText = 'No se encontró el reporte.';
-            return;
+                // Si por algún motivo no había datos en la URL, llenamos el texto aquí también
+                if (!dataParam) {
+                    document.getElementById('fecha_reporte').innerText = r.fecha_registro || '-';
+                    document.getElementById('fecha_validador').innerText = limpiarFechaValidador(r.fecha_validador);
+                    document.getElementById('auditor').innerText = r.auditor || '-';
+                    document.getElementById('turno').innerText = r.turno || '-';
+                    document.getElementById('nro_pallet').innerText = r.nro_pallet || '-';
+                    document.getElementById('cod_tienda').innerText = r.cod_tienda || '-';
+                    document.getElementById('nombre_tienda').innerText = r.nombre_tienda || '-';
+                    document.getElementById('origen').innerText = r.origen || 'CD MASS TRUJILLO';
+                    document.getElementById('descripcion').innerText = r.descripcion || '-';
+                }
+
+                // Inyectar las imágenes en pantalla
+                if (r.url_packing) {
+                    document.getElementById('box_packing').style.display = 'block';
+                    document.getElementById('img_packing').src = r.url_packing;
+                }
+                if (r.url_pallet) {
+                    document.getElementById('box_pallet').style.display = 'block';
+                    document.getElementById('img_pallet').src = r.url_pallet;
+                }
+            }
+        } catch (err) {
+            console.error("Error al cargar reporte desde Google:", err);
+            if (!dataParam) {
+                document.getElementById('fecha_reporte').innerText = 'Error al cargar los datos.';
+            }
         }
-
-        const r = data.reporte;
-
-        document.getElementById('fecha_reporte').innerText = r.fecha_registro || '-';
-        document.getElementById('fecha_validador').innerText = limpiarFechaValidador(r.fecha_validador);
-        document.getElementById('auditor').innerText = r.auditor || '-';
-        document.getElementById('turno').innerText = r.turno || '-';
-        document.getElementById('nro_pallet').innerText = r.nro_pallet || '-';
-        document.getElementById('cod_tienda').innerText = r.cod_tienda || '-';
-        document.getElementById('nombre_tienda').innerText = r.nombre_tienda || '-';
-        document.getElementById('origen').innerText = r.origen || 'CD MASS TRUJILLO';
-        document.getElementById('descripcion').innerText = r.descripcion || '-';
-
-        if (r.url_packing) {
-            document.getElementById('box_packing').style.display = 'block';
-            document.getElementById('img_packing').src = r.url_packing;
-        }
-        if (r.url_pallet) {
-            document.getElementById('box_pallet').style.display = 'block';
-            document.getElementById('img_pallet').src = r.url_pallet;
-        }
-    } catch (err) {
-        console.error("Error al cargar reporte:", err);
-        document.getElementById('fecha_reporte').innerText = 'Error al cargar los datos.';
     }
 }
 

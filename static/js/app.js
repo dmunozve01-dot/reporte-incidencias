@@ -161,7 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.status === 'success') {
-                const datosReporte = encodeURIComponent(JSON.stringify(payload));
+                // Clonamos los datos para no modificar el payload original enviado a Google
+                const payloadSinImagenes = { ...payload };
+
+                // Eliminamos las imágenes gigantes en Base64 de la URL
+                delete payloadSinImagenes.url_packing;
+                delete payloadSinImagenes.url_pallet;
+
+                const datosReporte = encodeURIComponent(JSON.stringify(payloadSinImagenes));
                 window.location.href = `reporte.html?id=${result.id}&data=${datosReporte}`;
             } else {
                 throw new Error(result.message || "Error al actualizar en Google Sheets");
